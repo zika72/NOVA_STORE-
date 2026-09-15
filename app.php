@@ -50,7 +50,10 @@ function loadEnv(string $file): array {
     return $env;
 }
 
-$ENV = loadEnv(__DIR__ . '/.env');
+function envValue(string $key, string $default = ''): string {
+    $value = getenv($key);
+    return $value === false ? $default : trim($value);
+}
 
 function jsonResponse(array $data, int $status = 200): never {
     http_response_code($status);
