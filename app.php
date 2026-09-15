@@ -13,6 +13,10 @@ declare(strict_types=1);
  * POST /api/mark-paid
  * GET  /api/order?id=...
  * GET  /health
+ *
+ * Routes ADMIN (protégées par mot de passe, header X-Admin-Key):
+ * GET  /api/admin/orders
+ * POST /api/admin/update-status
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -50,10 +54,7 @@ function loadEnv(string $file): array {
     return $env;
 }
 
-function envValue(string $key, string $default = ''): string {
-    $value = getenv($key);
-    return $value === false ? $default : trim($value);
-}
+$ENV = loadEnv(__DIR__ . '/.env');
 
 function jsonResponse(array $data, int $status = 200): never {
     http_response_code($status);
@@ -308,12 +309,79 @@ function getOrder(): never {
     jsonResponse(['error' => 'Commande introuvable.'], 404);
 }
 
+function requireAdmin(array $env): void {
+    $expected = (string)($env['ADMIN_PASSWORD'] ?? '');
+
+    if ($expected === '' || $expected === 'CHANGE_MOI_MOT_DE_PASSE_ADMIN') {
+        jsonResponse(['error' => "Configure ADMIN_PASSWORD dans le fichier .env avant d'utiliser l'admin."], 500);
+    }
+
+    $given = (string)($_SERVER['HTTP_X_ADMIN_KEY'] ?? '');
+
+    if ($given === '' || !hash_equals($expected, $given)) {
+        jsonResponse(['error' => 'Accès admin refusé.'], 401);
+    }
+}
+
+function listOrdersAdmin(array $env): never {
+    requireAdmin($env);
+
+    $orders = readOrders();
+    // Les plus récentes en premier.
+    $orders = array_reverse($orders);
+
+    jsonResponse(['success' => true, 'orders' => $orders]);
+}
+
+function updateOrderStatus(array $env): never {
+    requireAdmin($env);
+
+    $data = input();
+    $id = trim((string)($data['order_id'] ?? ''));
+    $status = trim((string)($data['status'] ?? ''));
+
+    $allowed = ['pending_payment', 'payment_to_verify', 'paid', 'rejected'];
+
+    if ($id === '' || !in_array($status, $allowed, true)) {
+        jsonResponse(['error' => 'Requête invalide.'], 422);
+    }
+
+    $orders = readOrders();
+    $found = false;
+
+    foreach ($orders as &$order) {
+        if (($order['id'] ?? '') === $id) {
+            $order['status'] = $status;
+            $order['updated_at'] = date('c');
+            $found = true;
+            break;
+        }
+    }
+    unset($order);
+
+    if (!$found) {
+        jsonResponse(['error' => 'Commande introuvable.'], 404);
+    }
+
+    writeOrders($orders);
+
+    jsonResponse(['success' => true, 'status' => $status]);
+}
+
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 
-$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
-if ($scriptDir && $scriptDir !== '/' && str_starts_with($path, $scriptDir)) {
-    $path = substr($path, strlen($scriptDir)) ?: '/';
+// Retire tout ce qui précède "app.php" dans l'URL, quel que soit le
+// dossier ou le type de serveur (Apache, nginx, Render, etc.).
+// Ex: "/app.php/api/create-order" -> "/api/create-order"
+//     "/mon-dossier/app.php/health" -> "/health"
+$marker = 'app.php';
+$pos = strpos($path, $marker);
+if ($pos !== false) {
+    $path = substr($path, $pos + strlen($marker));
+}
+if ($path === '' || $path === false) {
+    $path = '/';
 }
 
 /*
@@ -341,6 +409,14 @@ try {
 
     if ($method === 'GET' && $path === '/health') {
         jsonResponse(['success' => true, 'service' => 'NOVA STORE']);
+    }
+
+    if ($method === 'GET' && $path === '/api/admin/orders') {
+        listOrdersAdmin($ENV);
+    }
+
+    if ($method === 'POST' && $path === '/api/admin/update-status') {
+        updateOrderStatus($ENV);
     }
 
     jsonResponse(['error' => 'Route introuvable.'], 404);
