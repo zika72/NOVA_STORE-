@@ -1,0 +1,32 @@
+NOVA STORE — PRÊT À HÉBERGER
+=============================
+
+Ce dossier contient la version corrigée et sécurisée, prête à être envoyée
+sur votre hébergement (ex. InfinityFree).
+
+FICHIERS À UPLOADER (tous, dans le même dossier "htdocs/" ou "public_html/") :
+- index.html
+- style.css
+- script.js       (version connectée au serveur PHP — remplace l'ancienne)
+- app.php
+- .env            (contient votre numéro Wave — ne le partagez à personne)
+- .htaccess       (protège .env et vos commandes contre l'accès public)
+
+AVANT D'UPLOADER :
+1. Ouvrez le fichier .env et vérifiez que WAVE_NUMBER contient bien
+   votre numéro Wave correct.
+
+CE QUI A ÉTÉ CORRIGÉ :
+- Un bug dans app.php empêchait l'enregistrement des commandes
+  (erreur de syntaxe PHP) — corrigé.
+- Ajout du .htaccess pour empêcher que n'importe qui puisse consulter
+  votre fichier .env ou la liste de vos commandes (orders.json) en tapant
+  leur adresse dans un navigateur.
+
+APRÈS L'UPLOAD :
+- Testez en ouvrant : https://votre-lien/health
+  Vous devriez voir : {"success":true,"service":"NOVA STORE"}
+- Si vous voyez une erreur 500, vérifiez que le dossier a bien les droits
+  d'écriture (pour créer orders.json automatiquement).
+- Testez ensuite que https://votre-lien/.env affiche bien une erreur
+  d'accès refusé (403), et non le contenu du fichier.

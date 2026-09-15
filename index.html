@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090909">
+  <meta name="description" content="NOVA STORE - Argent et VIP pour votre serveur RP.">
+  <title>NOVA STORE</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <a href="#accueil" class="logo">NOVA<span>STORE</span></a>
+
+    <button class="menu-btn" id="menuBtn" type="button" aria-label="Ouvrir le menu">☰</button>
+
+    <nav id="mainNav" class="nav">
+      <a href="#accueil">Accueil</a>
+      <a href="#boutique">Boutique</a>
+      <a href="#favoris">❤️ Favoris <span id="favoriteCount" class="badge">0</span></a>
+      <a href="#panier">🛒 Panier <span id="cartCount" class="badge">0</span></a>
+      <a href="#compte">👤 Compte</a>
+    </nav>
+
+    <button id="themeBtn" class="icon-btn" type="button" aria-label="Changer le thème">🌙</button>
+  </header>
+
+  <main>
+    <section id="accueil" class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">BOUTIQUE OFFICIELLE</p>
+        <h1>NOVA <span>STORE</span></h1>
+        <p>Achetez votre argent RP et vos avantages VIP rapidement.</p>
+        <a href="#boutique" class="btn primary">Voir la boutique</a>
+      </div>
+    </section>
+
+    <section class="section" id="boutique">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">NOS PRODUITS</p>
+          <h2>Boutique</h2>
+        </div>
+        <div class="filters">
+          <button class="filter-btn active" type="button" data-category="all">Tout</button>
+          <button class="filter-btn" type="button" data-category="argent">💰 Argent</button>
+          <button class="filter-btn" type="button" data-category="vip">👑 VIP</button>
+        </div>
+      </div>
+
+      <div id="productGrid" class="product-grid"></div>
+    </section>
+
+    <section class="section cart-section" id="panier">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">VOTRE SÉLECTION</p>
+          <h2>🛒 Panier</h2>
+        </div>
+      </div>
+
+      <div class="cart-layout">
+        <div id="cartItems" class="cart-items">
+          <div class="empty-box">Votre panier est vide.</div>
+        </div>
+
+        <aside class="summary">
+          <h3>Résumé</h3>
+          <div class="summary-row">
+            <span>Sous-total</span>
+            <strong id="subtotal">0 FCFA</strong>
+          </div>
+          <div class="promo-row">
+            <input id="promoInput" type="text" maxlength="40" placeholder="Code promo">
+            <button id="promoBtn" class="btn secondary" type="button">Appliquer</button>
+          </div>
+          <p id="promoMessage" class="small-message"></p>
+          <div class="summary-row discount">
+            <span>Réduction</span>
+            <strong id="discount">0 FCFA</strong>
+          </div>
+          <div class="summary-total">
+            <span>Total</span>
+            <strong id="total">0 FCFA</strong>
+          </div>
+          <button id="checkoutBtn" class="btn primary full" type="button">Continuer vers le paiement</button>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="favoris">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">VOS PRODUITS</p>
+          <h2>❤️ Favoris</h2>
+        </div>
+      </div>
+      <div id="favoriteGrid" class="product-grid"></div>
+      <div id="favoriteEmpty" class="empty-box hidden">Vous n'avez aucun favori pour le moment.</div>
+    </section>
+
+    <section class="section account-section" id="compte">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">ESPACE CLIENT</p>
+          <h2>👤 Compte</h2>
+        </div>
+      </div>
+
+      <div id="accountLoggedOut" class="account-grid">
+        <form id="loginForm" class="card form-card">
+          <h3>Connexion</h3>
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="email" required autocomplete="email">
+
+          <label for="loginPassword">Mot de passe</label>
+          <input id="loginPassword" type="password" required autocomplete="current-password">
+
+          <button class="btn primary full" type="submit">Se connecter</button>
+          <p id="loginMessage" class="small-message"></p>
+        </form>
+
+        <form id="registerForm" class="card form-card">
+          <h3>Créer un compte</h3>
+          <label for="registerName">Nom</label>
+          <input id="registerName" type="text" required maxlength="60" autocomplete="name">
+
+          <label for="registerEmail">Email</label>
+          <input id="registerEmail" type="email" required maxlength="120" autocomplete="email">
+
+          <label for="registerPassword">Mot de passe</label>
+          <input id="registerPassword" type="password" required minlength="6" autocomplete="new-password">
+
+          <button class="btn primary full" type="submit">Créer mon compte</button>
+          <p id="registerMessage" class="small-message"></p>
+        </form>
+      </div>
+
+      <div id="accountLoggedIn" class="card account-card hidden">
+        <div>
+          <p class="eyebrow">CONNECTÉ</p>
+          <h3 id="accountName">Client</h3>
+          <p id="accountEmail"></p>
+        </div>
+        <div class="account-actions">
+          <button id="ordersBtn" class="btn secondary" type="button">📦 Mes commandes</button>
+          <button id="logoutBtn" class="btn danger" type="button">Déconnexion</button>
+        </div>
+      </div>
+
+      <div id="ordersPanel" class="orders-panel hidden">
+        <h3>📦 Mes commandes</h3>
+        <div id="ordersList"></div>
+      </div>
+    </section>
+
+    <section id="payment" class="section payment-section hidden">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">PAIEMENT</p>
+          <h2>🌊 Paiement Wave</h2>
+        </div>
+      </div>
+
+      <div class="payment-card card">
+        <div class="payment-info">
+          <h3>Commande prête</h3>
+          <p>Total à payer : <strong id="paymentTotal">0 FCFA</strong></p>
+          <p class="muted">Le paiement réel Wave nécessite une intégration côté serveur/API. Cette version crée uniquement une commande locale de démonstration.</p>
+        </div>
+
+        <form id="paymentForm" class="payment-form">
+          <label for="customerPhone">Numéro de téléphone</label>
+          <input id="customerPhone" type="tel" inputmode="numeric" pattern="[0-9]{8,15}" maxlength="15" placeholder="Ex. 0700000000" required>
+          <button class="btn primary full" type="submit">Valider la commande</button>
+          <p id="paymentMessage" class="small-message"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div>
+      <strong>NOVA STORE</strong>
+      <p>Argent RP • VIP • Paiement Wave</p>
+    </div>
+    <p>© <span id="year"></span> NOVA STORE. Tous droits réservés.</p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
