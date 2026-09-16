@@ -31,7 +31,7 @@ const PRODUCTS = [
 
   Exemple :
   const PROMO_CODES = {
-    "NOVA2024": 10
+    "MONCODE": 10
   };
 
   Le 10 signifie 10 % de réduction.
@@ -522,7 +522,7 @@ async function submitPayment() {
       id: data.order_id,
       date: new Date().toISOString(),
       total: data.total,
-      payment: "Wave",
+      payment: "Orange Money",
       phone: phone,
       items: cart.map((item) => ({ ...item })),
       status: "Paiement à vérifier",
@@ -538,21 +538,42 @@ async function submitPayment() {
 
     phoneInput.value = "";
 
+    const hasLink = typeof data.orange_link === "string" && data.orange_link.trim() !== "";
+
     message.innerHTML =
       `Commande <strong>${escapeHTML(data.order_id)}</strong> créée.<br>` +
       `💰 Montant : <strong>${formatPrice(data.total)}</strong><br>` +
-      `🌊 Envoie exactement ce montant au numéro Wave : ` +
-      `<strong>${escapeHTML(data.wave_number)}</strong><br>` +
+      (hasLink
+        ? `🟠 Clique sur le bouton ci-dessous pour payer via Orange Money.<br>`
+        : `🟠 Envoie exactement ce montant au numéro Orange Money : ` +
+          `<strong>${escapeHTML(data.orange_number)}</strong><br>`) +
       `Puis clique sur <strong>« J'ai effectué le paiement »</strong> après ton transfert.`;
+
+    const oldPayLink = document.querySelector('[data-transient="orange-pay-link"]');
+    oldPayLink?.remove();
+
+    if (hasLink) {
+      const payLink = document.createElement("a");
+      payLink.href = data.orange_link;
+      payLink.target = "_blank";
+      payLink.rel = "noopener noreferrer";
+      payLink.className = "btn primary full";
+      payLink.style.marginTop = "10px";
+      payLink.style.display = "block";
+      payLink.style.textAlign = "center";
+      payLink.textContent = "🟠 Payer via Orange Money";
+      payLink.dataset.transient = "orange-pay-link";
+      message.after(payLink);
+    }
 
     const paymentForm = document.getElementById("paymentForm");
     if (paymentForm) {
-      const oldConfirm = paymentForm.querySelector(".manual-wave-confirm");
+      const oldConfirm = paymentForm.querySelector(".manual-orange-confirm");
       oldConfirm?.remove();
 
       const confirm = document.createElement("button");
       confirm.type = "button";
-      confirm.className = "btn secondary full manual-wave-confirm";
+      confirm.className = "btn secondary full manual-orange-confirm";
       confirm.textContent = "✅ J'ai effectué le paiement";
       confirm.addEventListener("click", async () => {
         confirm.disabled = true;
@@ -579,9 +600,10 @@ async function submitPayment() {
           message.innerHTML =
             `📩 <strong>Paiement signalé.</strong><br>` +
             `Commande : <strong>${escapeHTML(data.order_id)}</strong><br>` +
-            `L'administration va vérifier le paiement sur Wave avant de valider la commande.`;
+            `L'administration va vérifier le paiement sur Orange Money avant de valider la commande.`;
 
           confirm.remove();
+          document.querySelector('[data-transient="orange-pay-link"]')?.remove();
           renderOrders();
           showToast("Paiement signalé 📩");
         } catch (error) {

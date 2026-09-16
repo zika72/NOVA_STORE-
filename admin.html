@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>NOVA STORE — Administration</title>
+<style>
+  :root {
+    --bg: #080808;
+    --surface: #111111;
+    --surface-2: #181818;
+    --border: #292929;
+    --text: #f5f5f5;
+    --muted: #a8a8a8;
+    --accent: #ffffff;
+    --accent-text: #090909;
+    --danger: #ff5c5c;
+    --success: #6ee7a0;
+    --warning: #ffd166;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
+  header.top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  header.top h1 { font-size: 1.4rem; letter-spacing: .5px; }
+  header.top h1 span { color: var(--muted); font-weight: normal; }
+  .btn {
+    background: var(--accent); color: var(--accent-text); border: none;
+    padding: 10px 18px; border-radius: 8px; font-weight: bold; cursor: pointer;
+    font-size: .9rem;
+  }
+  .btn.secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+  .btn.danger { background: var(--danger); color: #1a0000; }
+  .btn.small { padding: 6px 12px; font-size: .8rem; border-radius: 6px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  #loginScreen {
+    max-width: 380px; margin: 15vh auto; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 14px; padding: 28px;
+  }
+  #loginScreen h2 { margin-bottom: 6px; }
+  #loginScreen p { color: var(--muted); font-size: .85rem; margin-bottom: 18px; }
+  #loginScreen input {
+    width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text); margin-bottom: 12px; font-size: 1rem;
+  }
+  #loginMessage { color: var(--danger); font-size: .85rem; min-height: 1.2em; margin-top: 8px; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .stat-card .num { font-size: 1.6rem; font-weight: bold; }
+  .stat-card .label { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .5px; }
+
+  .toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .filter-chip {
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
+    padding: 6px 14px; border-radius: 20px; font-size: .8rem; cursor: pointer;
+  }
+  .filter-chip.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+
+  .order-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; margin-bottom: 12px;
+  }
+  .order-head { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .order-id { font-weight: bold; font-family: monospace; }
+  .order-date { color: var(--muted); font-size: .8rem; }
+  .status-pill {
+    display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: .75rem;
+    font-weight: bold; text-transform: uppercase; letter-spacing: .3px;
+  }
+  .status-pending_payment { background: #3a3a3a; color: var(--muted); }
+  .status-payment_to_verify { background: rgba(255, 209, 102, .15); color: var(--warning); }
+  .status-paid { background: rgba(110, 231, 160, .15); color: var(--success); }
+  .status-rejected { background: rgba(255, 92, 92, .15); color: var(--danger); }
+
+  .order-body { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 12px; }
+  .order-info p { font-size: .85rem; color: var(--muted); margin-bottom: 2px; }
+  .order-info strong { color: var(--text); }
+  .order-items { font-size: .85rem; color: var(--muted); flex: 1; min-width: 200px; }
+  .order-items div { display: flex; justify-content: space-between; padding: 2px 0; }
+  .order-total { font-size: 1.1rem; font-weight: bold; white-space: nowrap; }
+
+  .order-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .empty-box { text-align: center; padding: 40px; color: var(--muted); background: var(--surface); border-radius: 12px; border: 1px dashed var(--border); }
+  .hidden { display: none !important; }
+  #toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--surface-2); border: 1px solid var(--border); padding: 12px 20px;
+    border-radius: 10px; opacity: 0; transition: .25s; pointer-events: none; font-size: .9rem;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <h2>🔒 Administration</h2>
+  <p>NOVA STORE — accès réservé au propriétaire de la boutique.</p>
+  <input id="adminPassword" type="password" placeholder="Mot de passe admin" autocomplete="current-password">
+  <button class="btn" id="loginBtn" style="width:100%;">Se connecter</button>
+  <p id="loginMessage"></p>
+</div>
+
+<div class="wrap hidden" id="panel">
+  <header class="top">
+    <h1>NOVA <span>STORE — Administration</span></h1>
+    <div style="display:flex; gap:8px;">
+      <button class="btn secondary" id="refreshBtn">🔄 Actualiser</button>
+      <button class="btn secondary" id="logoutBtn">Déconnexion</button>
+    </div>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar" id="filters">
+    <button class="filter-chip active" data-filter="all">Toutes</button>
+    <button class="filter-chip" data-filter="payment_to_verify">À vérifier</button>
+    <button class="filter-chip" data-filter="pending_payment">En attente</button>
+    <button class="filter-chip" data-filter="paid">Payées</button>
+    <button class="filter-chip" data-filter="rejected">Rejetées</button>
+  </div>
+
+  <div id="ordersList"></div>
+
+  <h2 style="margin: 32px 0 14px; font-size: 1.1rem;">🎟️ Codes promo</h2>
+  <div class="order-card" style="margin-bottom: 20px;">
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+      <div>
+        <label style="font-size:.75rem; color:var(--muted); display:block; margin-bottom:4px;">Code</label>
+        <input id="promoCodeInput" type="text" placeholder="EX: NOVA10" maxlength="20"
+          style="padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); text-transform:uppercase; width:160px;">
+      </div>
+      <div>
+        <label style="font-size:.75rem; color:var(--muted); display:block; margin-bottom:4px;">Réduction (%)</label>
+        <input id="promoPercentInput" type="number" min="1" max="90" placeholder="10"
+          style="padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2); color:var(--text); width:90px;">
+      </div>
+      <button class="btn secondary small" id="promoRandomBtn" type="button">🎲 Générer un code</button>
+      <button class="btn small" id="promoCreateBtn" type="button">+ Créer le code</button>
+    </div>
+  </div>
+  <div id="promoList"></div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+  const API = 'app.php';
+  const loginScreen = document.getElementById('loginScreen');
+  const panel = document.getElementById('panel');
+  const passwordInput = document.getElementById('adminPassword');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginMessage = document.getElementById('loginMessage');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const ordersList = document.getElementById('ordersList');
+  const statsEl = document.getElementById('stats');
+  const filtersEl = document.getElementById('filters');
+  const toast = document.getElementById('toast');
+  const promoList = document.getElementById('promoList');
+  const promoCodeInput = document.getElementById('promoCodeInput');
+  const promoPercentInput = document.getElementById('promoPercentInput');
+  const promoRandomBtn = document.getElementById('promoRandomBtn');
+  const promoCreateBtn = document.getElementById('promoCreateBtn');
+
+  let allOrders = [];
+  let currentFilter = 'all';
+
+  const STATUS_LABELS = {
+    pending_payment: 'En attente',
+    payment_to_verify: 'À vérifier',
+    paid: 'Payée',
+    rejected: 'Rejetée',
+  };
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  function getKey() {
+    return sessionStorage.getItem('nova_admin_key') || '';
+  }
+
+  function setKey(key) {
+    sessionStorage.setItem('nova_admin_key', key);
+  }
+
+  function clearKey() {
+    sessionStorage.removeItem('nova_admin_key');
+  }
+
+  async function apiFetch(path, options = {}) {
+    const headers = Object.assign({ 'X-Admin-Key': getKey() }, options.headers || {});
+    const res = await fetch(API + path, Object.assign({}, options, { headers }));
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Erreur serveur.');
+    return data;
+  }
+
+  function fmtMoney(n, currency) {
+    return Number(n).toLocaleString('fr-FR') + ' ' + (currency || 'FCFA');
+  }
+
+  function fmtDate(iso) {
+    try {
+      return new Date(iso).toLocaleString('fr-FR');
+    } catch (e) {
+      return iso;
+    }
+  }
+
+  function renderStats() {
+    const total = allOrders.length;
+    const toVerify = allOrders.filter(o => o.status === 'payment_to_verify').length;
+    const paid = allOrders.filter(o => o.status === 'paid').length;
+    const revenue = allOrders
+      .filter(o => o.status === 'paid')
+      .reduce((sum, o) => sum + (o.total || 0), 0);
+
+    statsEl.innerHTML = `
+      <div class="stat-card"><div class="num">${total}</div><div class="label">Commandes</div></div>
+      <div class="stat-card"><div class="num">${toVerify}</div><div class="label">À vérifier</div></div>
+      <div class="stat-card"><div class="num">${paid}</div><div class="label">Payées</div></div>
+      <div class="stat-card"><div class="num">${fmtMoney(revenue, allOrders[0]?.currency)}</div><div class="label">Revenu confirmé</div></div>
+    `;
+  }
+
+  function renderOrders() {
+    const filtered = currentFilter === 'all'
+      ? allOrders
+      : allOrders.filter(o => o.status === currentFilter);
+
+    if (!filtered.length) {
+      ordersList.innerHTML = '<div class="empty-box">Aucune commande ici.</div>';
+      return;
+    }
+
+    ordersList.innerHTML = filtered.map(order => {
+      const itemsHtml = (order.items || []).map(it =>
+        `<div><span>${it.quantity} × ${it.name}</span><span>${fmtMoney(it.line_total, order.currency)}</span></div>`
+      ).join('');
+
+      const canVerify = order.status === 'payment_to_verify' || order.status === 'pending_payment';
+      const canReject = order.status !== 'rejected';
+      const canReset = order.status === 'paid' || order.status === 'rejected';
+
+      return `
+        <div class="order-card">
+          <div class="order-head">
+            <div>
+              <div class="order-id">${order.id}</div>
+              <div class="order-date">${fmtDate(order.created_at)}</div>
+            </div>
+            <span class="status-pill status-${order.status}">${STATUS_LABELS[order.status] || order.status}</span>
+          </div>
+          <div class="order-body">
+            <div class="order-info">
+              <p>Client : <strong>${order.email || '—'}</strong></p>
+              <p>Téléphone : <strong>${order.customer_phone || '—'}</strong></p>
+              ${order.promo ? `<p>Code promo : <strong>${order.promo}</strong></p>` : ''}
+            </div>
+            <div class="order-items">${itemsHtml}</div>
+            <div class="order-total">${fmtMoney(order.total, order.currency)}</div>
+          </div>
+          <div class="order-actions">
+            ${canVerify ? `<button class="btn small" data-action="paid" data-id="${order.id}">✅ Accepter / Marquer payée</button>` : ''}
+            ${canReject ? `<button class="btn small danger" data-action="rejected" data-id="${order.id}">❌ Rejeter</button>` : ''}
+            ${canReset ? `<button class="btn small secondary" data-action="pending_payment" data-id="${order.id}">↩️ Remettre en attente</button>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function loadOrders() {
+    try {
+      const data = await apiFetch('/api/admin/orders');
+      allOrders = data.orders || [];
+      renderStats();
+      renderOrders();
+    } catch (e) {
+      showToast(e.message);
+      if (e.message.includes('refusé')) doLogout();
+    }
+  }
+
+  function randomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let out = 'NOVA';
+    for (let i = 0; i < 4; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    return out;
+  }
+
+  function renderPromoCodes(codes) {
+    if (!codes.length) {
+      promoList.innerHTML = '<div class="empty-box">Aucun code promo pour le moment.</div>';
+      return;
+    }
+    promoList.innerHTML = codes.map(c => `
+      <div class="order-card" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div>
+          <span class="order-id">${c.code}</span>
+          <span style="color:var(--muted); margin-left:10px;">-${c.percent}%</span>
+          ${c.created_at ? `<div class="order-date">${fmtDate(c.created_at)}</div>` : ''}
+        </div>
+        <button class="btn small danger" data-code="${c.code}" data-action="delete-promo">🗑️ Supprimer</button>
+      </div>
+    `).join('');
+  }
+
+  async function loadPromoCodes() {
+    try {
+      const data = await apiFetch('/api/admin/promo-codes');
+      renderPromoCodes(data.codes || []);
+    } catch (e) {
+      showToast(e.message);
+    }
+  }
+
+  async function createPromoCode() {
+    const code = promoCodeInput.value.trim().toUpperCase();
+    const percent = parseInt(promoPercentInput.value, 10);
+    if (!code) { showToast('Entre un code ou clique sur "Générer un code".'); return; }
+    if (!percent || percent < 1 || percent > 90) { showToast('Réduction entre 1 et 90%.'); return; }
+    try {
+      await apiFetch('/api/admin/promo-codes/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, percent }),
+      });
+      showToast(`Code ${code} créé.`);
+      promoCodeInput.value = '';
+      promoPercentInput.value = '';
+      loadPromoCodes();
+    } catch (e) {
+      showToast(e.message);
+    }
+  }
+
+  async function deletePromoCode(code) {
+    try {
+      await apiFetch('/api/admin/promo-codes/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      showToast(`Code ${code} supprimé.`);
+      loadPromoCodes();
+    } catch (e) {
+      showToast(e.message);
+    }
+  }
+
+  promoRandomBtn.addEventListener('click', () => { promoCodeInput.value = randomCode(); });
+  promoCreateBtn.addEventListener('click', createPromoCode);
+  promoList.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-action="delete-promo"]');
+    if (!btn) return;
+    deletePromoCode(btn.dataset.code);
+  });
+
+  async function updateStatus(id, status) {
+    try {
+      await apiFetch('/api/admin/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: id, status }),
+      });
+      showToast('Commande mise à jour.');
+      loadOrders();
+    } catch (e) {
+      showToast(e.message);
+    }
+  }
+
+  function doLogin() {
+    const pwd = passwordInput.value.trim();
+    if (!pwd) return;
+    setKey(pwd);
+    loginMessage.textContent = '';
+    loginBtn.disabled = true;
+    apiFetch('/api/admin/orders')
+      .then(data => {
+        allOrders = data.orders || [];
+        loginScreen.classList.add('hidden');
+        panel.classList.remove('hidden');
+        renderStats();
+        renderOrders();
+        loadPromoCodes();
+      })
+      .catch(e => {
+        clearKey();
+        loginMessage.textContent = e.message.includes('refusé')
+          ? 'Mot de passe incorrect.'
+          : e.message;
+      })
+      .finally(() => { loginBtn.disabled = false; });
+  }
+
+  function doLogout() {
+    clearKey();
+    panel.classList.add('hidden');
+    loginScreen.classList.remove('hidden');
+    passwordInput.value = '';
+  }
+
+  loginBtn.addEventListener('click', doLogin);
+  passwordInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  logoutBtn.addEventListener('click', doLogout);
+  refreshBtn.addEventListener('click', () => { loadOrders(); loadPromoCodes(); });
+
+  filtersEl.addEventListener('click', e => {
+    const chip = e.target.closest('.filter-chip');
+    if (!chip) return;
+    filtersEl.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    currentFilter = chip.dataset.filter;
+    renderOrders();
+  });
+
+  ordersList.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    updateStatus(btn.dataset.id, btn.dataset.action);
+  });
+
+  // Auto-login si une clé est déjà en mémoire pour cet onglet
+  if (getKey()) {
+    loginScreen.classList.add('hidden');
+    panel.classList.remove('hidden');
+    loadOrders();
+    loadPromoCodes();
+  }
+})();
+</script>
+</body>
+</html>

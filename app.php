@@ -2,11 +2,12 @@
 declare(strict_types=1);
 
 /*
- * NOVA STORE — Paiement Wave MANUEL
+ * NOVA STORE — Paiement Orange Money MANUEL
  *
- * Ce serveur ne demande PAS de Wave Business/API.
- * Le client reçoit ton numéro Wave, effectue le transfert manuellement,
- * puis signale le paiement. L'administration vérifie ensuite le paiement.
+ * Ce serveur ne demande PAS d'API Orange Money Business.
+ * Le client reçoit ton numéro Orange Money, effectue le transfert
+ * manuellement, puis signale le paiement. L'administration vérifie
+ * ensuite le paiement.
  *
  * Routes:
  * POST /api/create-order
@@ -89,10 +90,113 @@ function products(): array {
     ];
 }
 
+function promoCodesFile(): string {
+    return __DIR__ . '/promo_codes.json';
+}
+
+function readPromoCodes(): array {
+    $file = promoCodesFile();
+
+    if (!is_file($file)) {
+        return [];
+    }
+
+    $json = file_get_contents($file);
+    $data = json_decode($json ?: '{}', true);
+
+    return is_array($data) ? $data : [];
+}
+
+function writePromoCodes(array $codes): void {
+    $file = promoCodesFile();
+    $tmp = $file . '.tmp';
+
+    $json = json_encode(
+        $codes,
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+    );
+
+    if ($json === false || file_put_contents($tmp, $json, LOCK_EX) === false) {
+        jsonResponse(['error' => "Impossible d'enregistrer le code promo."], 500);
+    }
+
+    if (!rename($tmp, $file)) {
+        @unlink($tmp);
+        jsonResponse(['error' => "Impossible de finaliser l'enregistrement du code promo."], 500);
+    }
+}
+
 function promoCodes(): array {
-    // Exemple:
-    // return ['NOVA10' => 10];
-    return [];
+    // Chaque code stocké est un tableau: ['percent' => int, 'created_at' => ...]
+    $codes = readPromoCodes();
+    $simple = [];
+
+    foreach ($codes as $code => $info) {
+        $simple[$code] = (int)($info['percent'] ?? 0);
+    }
+
+    return $simple;
+}
+
+function listPromoCodesAdmin(array $env): never {
+    requireAdmin($env);
+
+    $codes = readPromoCodes();
+    $list = [];
+
+    foreach ($codes as $code => $info) {
+        $list[] = [
+            'code' => $code,
+            'percent' => (int)($info['percent'] ?? 0),
+            'created_at' => $info['created_at'] ?? null,
+        ];
+    }
+
+    jsonResponse(['success' => true, 'codes' => $list]);
+}
+
+function createPromoCodeAdmin(array $env): never {
+    requireAdmin($env);
+
+    $data = input();
+    $code = strtoupper(trim((string)($data['code'] ?? '')));
+    $percent = (int)($data['percent'] ?? 0);
+
+    if ($code === '' || !preg_match('/^[A-Z0-9_-]{3,20}$/', $code)) {
+        jsonResponse(['error' => 'Code invalide (3 à 20 caractères, lettres/chiffres).'], 422);
+    }
+
+    if ($percent < 1 || $percent > 90) {
+        jsonResponse(['error' => 'La réduction doit être entre 1 et 90%.'], 422);
+    }
+
+    $codes = readPromoCodes();
+    $codes[$code] = [
+        'percent' => $percent,
+        'created_at' => date('c'),
+    ];
+
+    writePromoCodes($codes);
+
+    jsonResponse(['success' => true, 'code' => $code, 'percent' => $percent]);
+}
+
+function deletePromoCodeAdmin(array $env): never {
+    requireAdmin($env);
+
+    $data = input();
+    $code = strtoupper(trim((string)($data['code'] ?? '')));
+
+    $codes = readPromoCodes();
+
+    if (!isset($codes[$code])) {
+        jsonResponse(['error' => 'Code promo introuvable.'], 404);
+    }
+
+    unset($codes[$code]);
+    writePromoCodes($codes);
+
+    jsonResponse(['success' => true]);
 }
 
 function ordersFile(): string {
@@ -226,15 +330,20 @@ function createOrder(array $env): never {
         'promo' => $order['promo'],
         'total' => $order['total'],
         'currency' => $env['CURRENCY'] ?? 'XOF',
-        'payment_method' => 'Wave manuel',
-        'wave_number' => $env['WAVE_NUMBER'] ?? '',
+        'payment_method' => 'Orange Money manuel',
+        'orange_number' => $env['ORANGE_NUMBER'] ?? '',
+        'orange_link' => $env['ORANGE_LINK'] ?? '',
         'status' => 'pending_payment',
         'created_at' => $now,
         'updated_at' => $now,
     ];
 
-    if ($record['wave_number'] === '' || $record['wave_number'] === 'TON_NUMERO_WAVE_ICI') {
-        jsonResponse(['error' => 'Configure ton WAVE_NUMBER dans le fichier .env.'], 500);
+    if ($record['orange_number'] === '' || $record['orange_number'] === 'TON_NUMERO_ORANGE_MONEY_ICI') {
+        jsonResponse(['error' => 'Configure ton ORANGE_NUMBER dans le fichier .env.'], 500);
+    }
+
+    if ($record['orange_link'] === 'TON_LIEN_ORANGE_MONEY_ICI') {
+        $record['orange_link'] = '';
     }
 
     $orders = readOrders();
@@ -246,7 +355,8 @@ function createOrder(array $env): never {
         'order_id' => $id,
         'total' => $order['total'],
         'currency' => $record['currency'],
-        'wave_number' => $record['wave_number'],
+        'orange_number' => $record['orange_number'],
+        'orange_link' => $record['orange_link'],
         'status' => $record['status'],
     ]);
 }
@@ -371,9 +481,17 @@ function updateOrderStatus(array $env): never {
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 
-$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
-if ($scriptDir && $scriptDir !== '/' && str_starts_with($path, $scriptDir)) {
-    $path = substr($path, strlen($scriptDir)) ?: '/';
+// Retire tout ce qui précède "app.php" dans l'URL, quel que soit le
+// dossier ou le type de serveur (Apache, nginx, Render, etc.).
+// Ex: "/app.php/api/create-order" -> "/api/create-order"
+//     "/mon-dossier/app.php/health" -> "/health"
+$marker = 'app.php';
+$pos = strpos($path, $marker);
+if ($pos !== false) {
+    $path = substr($path, $pos + strlen($marker));
+}
+if ($path === '' || $path === false) {
+    $path = '/';
 }
 
 /*
@@ -409,6 +527,18 @@ try {
 
     if ($method === 'POST' && $path === '/api/admin/update-status') {
         updateOrderStatus($ENV);
+    }
+
+    if ($method === 'GET' && $path === '/api/admin/promo-codes') {
+        listPromoCodesAdmin($ENV);
+    }
+
+    if ($method === 'POST' && $path === '/api/admin/promo-codes/create') {
+        createPromoCodeAdmin($ENV);
+    }
+
+    if ($method === 'POST' && $path === '/api/admin/promo-codes/delete') {
+        deletePromoCodeAdmin($ENV);
     }
 
     jsonResponse(['error' => 'Route introuvable.'], 404);
