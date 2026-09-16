@@ -1,0 +1,13 @@
+# Bloque l'accès direct aux fichiers sensibles depuis un navigateur
+<FilesMatch "^(\.env|orders\.json|promo_codes\.json|README_SERVEUR\.TXT)$">
+    Require all denied
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Bloque aussi tout fichier .env potentiel (variantes)
+<Files ".env">
+    Require all denied
+    Order allow,deny
+    Deny from all
+</Files>
