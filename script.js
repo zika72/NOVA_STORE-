@@ -31,7 +31,7 @@ const PRODUCTS = [
 
   Exemple :
   const PROMO_CODES = {
-    "MONCODE": 10
+    "NOVA10": 10
   };
 
   Le 10 signifie 10 % de réduction.
