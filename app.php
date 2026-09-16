@@ -371,17 +371,9 @@ function updateOrderStatus(array $env): never {
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 
-// Retire tout ce qui précède "app.php" dans l'URL, quel que soit le
-// dossier ou le type de serveur (Apache, nginx, Render, etc.).
-// Ex: "/app.php/api/create-order" -> "/api/create-order"
-//     "/mon-dossier/app.php/health" -> "/health"
-$marker = 'app.php';
-$pos = strpos($path, $marker);
-if ($pos !== false) {
-    $path = substr($path, $pos + strlen($marker));
-}
-if ($path === '' || $path === false) {
-    $path = '/';
+$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+if ($scriptDir && $scriptDir !== '/' && str_starts_with($path, $scriptDir)) {
+    $path = substr($path, strlen($scriptDir)) ?: '/';
 }
 
 /*
