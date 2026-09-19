@@ -26,21 +26,10 @@ const PRODUCTS = [
 ];
 
 /*
-  TON CODE PROMO :
-  Ajoute ici le code que TU choisis.
-
-  Exemple :
-  const PROMO_CODES = {
-    "NOVA10": 10
-  };
-
-  Le 10 signifie 10 % de réduction.
-
-  ATTENTION : un code écrit ici dans JavaScript n'est PAS réellement secret,
-  car n'importe qui peut inspecter les fichiers du site.
-  Pour un vrai code secret, il faudra le gérer côté serveur.
+  Les codes promo sont désormais gérés depuis le panel admin
+  (admin.html), pas ici. Ce fichier interroge le serveur pour
+  vérifier chaque code en temps réel.
 */
-const PROMO_CODES = {};
 
 const STORAGE_KEYS = {
   cart: "nova_store_cart",
@@ -416,7 +405,7 @@ function renderAll() {
   renderAccount();
 }
 
-function applyPromo() {
+async function applyPromo() {
   const input = document.getElementById("promoInput");
   const message = document.getElementById("promoMessage");
 
@@ -433,16 +422,23 @@ function applyPromo() {
     return;
   }
 
-  const percent = Number(PROMO_CODES[code] || 0);
+  message.textContent = "Vérification...";
 
-  if (percent > 0 && percent <= 100) {
-    appliedPromo = { code, percent };
-    message.textContent = `Code appliqué : −${percent} %.`;
+  try {
+    const response = await fetch(`app.php/api/promo-check?code=${encodeURIComponent(code)}`);
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || "Code promo invalide.");
+    }
+
+    appliedPromo = { code: data.code, percent: data.percent };
+    message.textContent = `Code appliqué : −${data.percent} %.`;
     renderCart();
     showToast("Code promo appliqué 🎟️");
-  } else {
+  } catch (error) {
     appliedPromo = { code: "", percent: 0 };
-    message.textContent = "Code promo invalide.";
+    message.textContent = error instanceof Error ? error.message : "Code promo invalide.";
     renderCart();
   }
 }
