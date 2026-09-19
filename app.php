@@ -478,6 +478,22 @@ function updateOrderStatus(array $env): never {
     jsonResponse(['success' => true, 'status' => $status]);
 }
 
+function checkPromoCode(): never {
+    $code = strtoupper(trim((string)($_GET['code'] ?? '')));
+
+    if ($code === '') {
+        jsonResponse(['error' => 'Code manquant.'], 422);
+    }
+
+    $codes = promoCodes();
+
+    if (!isset($codes[$code]) || $codes[$code] <= 0) {
+        jsonResponse(['error' => 'Code promo invalide.'], 404);
+    }
+
+    jsonResponse(['success' => true, 'code' => $code, 'percent' => (int)$codes[$code]]);
+}
+
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 
@@ -517,6 +533,10 @@ try {
         getOrder();
     }
 
+    if ($method === 'GET' && $path === '/api/promo-check') {
+        checkPromoCode();
+    }
+
     if ($method === 'GET' && $path === '/health') {
         jsonResponse(['success' => true, 'service' => 'NOVA STORE']);
     }
@@ -547,3 +567,4 @@ try {
     jsonResponse(['error' => 'Erreur interne du serveur.'], 500);
 }
 ?>
+
